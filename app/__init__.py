@@ -17,9 +17,11 @@ def create_app():
             raise ValueError("MEDIA_MERGE configuration not found in config.json")
     
     # Register blueprints
-    from app.routes import system, media
-    app.register_blueprint(system.bp)
-    app.register_blueprint(media.bp)
+    from app.system import routes as system_routes
+    from app.media import routes as media_routes
+    
+    app.register_blueprint(system_routes.bp)
+    app.register_blueprint(media_routes.bp)
     
     return app
 
