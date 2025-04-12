@@ -1,0 +1,31 @@
+{
+    "DEBUG": false,
+    "HOST": "0.0.0.0",
+    "PORT": 5000,
+    "JELLYFIN": {
+        "URL": "http://192.168.10.20:80",
+        "TOKEN": "dc8ede37692c47f08322f09e711840fb"
+    },
+    "MEDIA_MERGE": {
+        "user": "media",
+        "group": "media",
+        "quality_order": ["4k", "uhd", "hd", "sd"],
+        "types": {
+            "tv": {
+                "source_paths": [
+                    "/media/tv-uhd",
+                    "/media/tv-hd"
+                ],
+                "merged_path": "/media/tv-merged"
+            },
+            "movies": {
+                "source_paths": [
+                    "/media/movies-hd",
+                    "/media/movies-uhd",
+                    "/media/movies-4k"
+                ],
+                "merged_path": "/media/movies-merged"
+            }
+        }
+    }
+} 
