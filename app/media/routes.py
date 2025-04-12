@@ -1,11 +1,13 @@
-from flask import Blueprint, jsonify
-from app.media.refresh import refresh as refresh_libraries
+from flask import Blueprint, jsonify, current_app
+from app.media.refresh import refresh_libraries
 
 bp = Blueprint('media', __name__, url_prefix='/media')
 
 @bp.route('/refresh')
 def refresh():
-    return refresh_libraries()
+    config = current_app.config['JELLYFIN']
+    result, status_code = refresh_libraries(config['URL'], config['TOKEN'])
+    return jsonify(result), status_code
 
 @bp.route('/merge')
 def merge():
