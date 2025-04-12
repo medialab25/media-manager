@@ -16,6 +16,9 @@ def create_app():
         if 'MEDIA_MERGE' not in app.config:
             raise ValueError("MEDIA_MERGE configuration not found in config.json")
     
+    # Enable debug mode
+    app.debug = True
+    
     # Register blueprints
     from app.system import routes as system_routes
     from app.media import routes as media_routes
