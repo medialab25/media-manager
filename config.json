@@ -9,22 +9,11 @@
     "MEDIA_MERGE": {
         "user": "media",
         "group": "media",
-        "quality_order": ["4k", "uhd", "hd", "sd"],
-        "types": {
+        "default_source_path": "/media/tst",
+        "source_matrix": {
             "tv": {
-                "source_paths": [
-                    "/media/tv-uhd",
-                    "/media/tv-hd"
-                ],
+                "quality_order": ["4k", "uhd", "hd", "sd"],
                 "merged_path": "/media/tv-merged"
-            },
-            "movies": {
-                "source_paths": [
-                    "/media/movies-hd",
-                    "/media/movies-uhd",
-                    "/media/movies-4k"
-                ],
-                "merged_path": "/media/movies-merged"
             }
         }
     }

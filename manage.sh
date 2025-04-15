@@ -166,6 +166,7 @@ run_dev() {
     echo -e "${GREEN}Starting development server...${NC}"
     export FLASK_ENV=development
     export FLASK_APP=app
+    export FLASK_DEBUG=1
     flask run --host=0.0.0.0 --port=5000
 }
 
