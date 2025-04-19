@@ -210,7 +210,7 @@ Environment="PATH=${PROJECT_DIR}/venv/bin"
 Environment="PYTHONPATH=${PROJECT_DIR}"
 Environment="FLASK_APP=app"
 Environment="FLASK_ENV=production"
-ExecStart=${PROJECT_DIR}/venv/bin/python3 ${PROJECT_DIR}/venv/bin/gunicorn --access-logfile /var/log/media-manager/access.log --error-logfile /var/log/media-manager/error.log -w 1 -b 0.0.0.0:5000 app:application
+ExecStart=${PROJECT_DIR}/venv/bin/python3 -m flask run --host=0.0.0.0 --port=5000
 Restart=on-failure
 RestartSec=5s
 TimeoutStartSec=30
