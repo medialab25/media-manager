@@ -1,0 +1,20 @@
+{
+    "DEBUG": false,
+    "HOST": "0.0.0.0",
+    "PORT": 5000,
+    "JELLYFIN": {
+        "URL": "http://192.168.10.20:80",
+        "TOKEN": "dc8ede37692c47f08322f09e711840fb"
+    },
+    "MEDIA_MERGE": {
+        "user": "1000",
+        "group": "1000",
+        "default_source_path": "/media/tst",
+        "source_matrix": {
+            "tv": {
+                "quality_order": ["4k", "uhd", "hd", "sd"],
+                "merged_path": "/media/tst/tv-merged"
+            }
+        }
+    }
+} 
