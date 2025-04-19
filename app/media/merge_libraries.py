@@ -1,4 +1,5 @@
 import os
+import shutil
 
 # Merge library type
 # Inputs:
@@ -11,6 +12,7 @@ import os
 
 def merge_libraries(media_type: str, source_paths: list[str], quality_list: list[str], merged_path: str, user_id: int, group_id: int) -> bool:
     success = True
+    merged_folders = {}  # Dictionary to track merged folders and their quality
     for source_path in source_paths:
         for quality in quality_list:
             media_folder = f"{media_type}-{quality}"
@@ -26,7 +28,18 @@ def merge_libraries(media_type: str, source_paths: list[str], quality_list: list
 
                 # For each folder, call merge_folder
                 for folder in folders:
-                    merge_folder(media_path, folder, merged_path, quality, quality_list, user_id, group_id)
+                    merge_folder(media_path, folder, merged_path, quality, quality_list, user_id, group_id, merged_folders)
+
+    # Cleanup folders in merged_path that are not in merged_folders
+    for folder in os.listdir(merged_path):
+        if folder not in merged_folders:
+            print(f"Removing folder {folder} from {merged_path} because it is not in merged_folders")
+            shutil.rmtree(os.path.join(merged_path, folder))
+
+    # Print merged folders sorted by key with value in a list
+    print(f"Merged folders:")
+    for key, value in sorted(merged_folders.items()):
+        print(f"{key}: {value}")
 
     return success
 
@@ -54,7 +67,7 @@ def get_folder_quality_flags(folder: str, quality_list: list[str]) -> str:
             return flag
     return None
 
-def merge_folder(media_path: str, folder: str, merged_path: str, quality: str, quality_list: list[str], user_id: int, group_id: int) -> bool:
+def merge_folder(media_path: str, folder: str, merged_path: str, quality: str, quality_list: list[str], user_id: int, group_id: int, merged_folders: dict[str, str]) -> bool:
     success = True
 
     # See if folder exists in merged_path, and create it if it doesn't
@@ -65,7 +78,6 @@ def merge_folder(media_path: str, folder: str, merged_path: str, quality: str, q
         try:
             # Create directory with proper permissions
             os.makedirs(target_path, mode=0o755)
-            # Set ownership
             os.chown(target_path, user_id, group_id)
         except PermissionError as e:
             #print(f"Error creating directory {target_path}: {str(e)}")
@@ -74,11 +86,49 @@ def merge_folder(media_path: str, folder: str, merged_path: str, quality: str, q
     # call get_folder_flags on the folder
     folder_quality_flag = get_folder_quality_flags(target_path, quality_list)
     #print(f"Folder quality flag: {folder_quality_flag}")
-    
+
+    # Check if folder is already merged with a better quality
+    if folder in merged_folders:
+        existing_quality = merged_folders[folder]
+        if quality_list.index(existing_quality) <= quality_list.index(quality):
+            print(f"Folder {folder} already merged with {existing_quality} (better or equal to {quality}), skipping")
+            return True
+        else:
+            print(f"Folder {folder} already merged with {existing_quality} (worse than {quality}), updating")
+    else:
+        # What is the current quality of the folder?
+        current_quality = get_folder_quality_flags(target_path, quality_list)
+        print(f"Current quality of {folder}: {current_quality}")
+        if current_quality is not None:
+            if quality_list.index(current_quality) == quality_list.index(quality):
+                print(f"Folder {folder} already merged with {current_quality} (equal to {quality}), skipping")
+                merged_folders[folder] = quality
+                return True
+            else:
+                print(f"Folder {folder} already merged with {current_quality} (worse than {quality}), updating")
+                
+    # Add folder to merged_folders
+    merged_folders[folder] = quality
+
     # Determine if folder_quality_flag is better than quality
-    if folder_quality_flag is not None and quality_list.index(folder_quality_flag) < quality_list.index(quality):
-        #print(f"Folder quality flag {folder_quality_flag} is better than {quality}, skipping")
-        return True
+    #if folder_quality_flag is not None:
+    #    if quality_list.index(folder_quality_flag) == quality_list.index(quality):
+    #        print(f"Folder quality flag {target_path} -> {folder_quality_flag} is equal to {quality}, skipping")
+    #        return True
+    #    elif quality_list.index(folder_quality_flag) < quality_list.index(quality):
+    #        print(f"Folder quality flag {target_path} -> {folder_quality_flag} is better than {quality}, skipping")
+    #        return True           
+    #    else:
+    #        print(f"Folder quality flag {target_path} -> {folder_quality_flag} is worse than {quality}, merging")
+
+    # If files exist in target_path, recursively remove them all
+    if os.path.exists(target_path):
+        for root, dirs, files in os.walk(target_path, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+                print(f"Removing all files in {target_path}")
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
 
     # Merge folder
     # Create a flag file with current quality
@@ -86,9 +136,6 @@ def merge_folder(media_path: str, folder: str, merged_path: str, quality: str, q
     with open(flag_file, 'w') as f:
         f.write(f"{quality}")
         #print(f"Created flag file {flag_file}")
-
-    # Get all files in folder
-    #print(f"Folder path: {source_path}")
 
     # Recursively hard link all files in source_path to target_path keeping the same relative path
     for root, dirs, files in os.walk(source_path):
