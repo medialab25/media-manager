@@ -9,11 +9,11 @@
     "MEDIA_MERGE": {
         "user": "1000",
         "group": "1000",
-        "default_source_path": "/media/tst",
+        "default_source_path": "/srv/storage/media",
         "source_matrix": {
-            "tv": {
-                "quality_order": ["4k", "uhd", "hd", "sd"],
-                "merged_path": "/media/tst/tv-merged"
+            "movies": {
+                "quality_order": ["uhd", "hd"],
+                "merged_path": "/srv/storage/media/movies-merged2"
             }
         }
     }
