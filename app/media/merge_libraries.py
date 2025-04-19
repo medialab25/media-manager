@@ -110,17 +110,6 @@ def merge_folder(media_path: str, folder: str, merged_path: str, quality: str, q
     # Add folder to merged_folders
     merged_folders[folder] = quality
 
-    # Determine if folder_quality_flag is better than quality
-    #if folder_quality_flag is not None:
-    #    if quality_list.index(folder_quality_flag) == quality_list.index(quality):
-    #        print(f"Folder quality flag {target_path} -> {folder_quality_flag} is equal to {quality}, skipping")
-    #        return True
-    #    elif quality_list.index(folder_quality_flag) < quality_list.index(quality):
-    #        print(f"Folder quality flag {target_path} -> {folder_quality_flag} is better than {quality}, skipping")
-    #        return True           
-    #    else:
-    #        print(f"Folder quality flag {target_path} -> {folder_quality_flag} is worse than {quality}, merging")
-
     # If files exist in target_path, recursively remove them all
     if os.path.exists(target_path):
         for root, dirs, files in os.walk(target_path, topdown=False):
