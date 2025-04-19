@@ -13,7 +13,7 @@
         "source_matrix": {
             "movies": {
                 "quality_order": ["uhd", "hd"],
-                "merged_path": "/srv/storage/media/movies-merged2"
+                "merged_path": "/srv/storage/media/movies-merged"
             }
         }
     }
