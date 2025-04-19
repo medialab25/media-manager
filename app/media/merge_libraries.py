@@ -13,6 +13,7 @@ import shutil
 def merge_libraries(media_type: str, source_paths: list[str], quality_list: list[str], merged_path: str, user_id: int, group_id: int) -> bool:
     success = True
     merged_folders = {}  # Dictionary to track merged folders and their quality
+    updated_folders = {}  # Dictionary to track updated folders and their quality
     for source_path in source_paths:
         for quality in quality_list:
             media_folder = f"{media_type}-{quality}"
@@ -28,7 +29,7 @@ def merge_libraries(media_type: str, source_paths: list[str], quality_list: list
 
                 # For each folder, call merge_folder
                 for folder in folders:
-                    merge_folder(media_path, folder, merged_path, quality, quality_list, user_id, group_id, merged_folders)
+                    merge_folder(media_path, folder, merged_path, quality, quality_list, user_id, group_id, merged_folders, updated_folders)
 
     # Cleanup folders in merged_path that are not in merged_folders
     for folder in os.listdir(merged_path):
@@ -39,6 +40,10 @@ def merge_libraries(media_type: str, source_paths: list[str], quality_list: list
     # Print merged folders sorted by key with value in a list
     print(f"Merged folders:")
     for key, value in sorted(merged_folders.items()):
+        print(f"{key}: {value}")
+
+    print(f"Updated folders:")
+    for key, value in sorted(updated_folders.items()):
         print(f"{key}: {value}")
 
     return success
@@ -67,7 +72,7 @@ def get_folder_quality_flags(folder: str, quality_list: list[str]) -> str:
             return flag
     return None
 
-def merge_folder(media_path: str, folder: str, merged_path: str, quality: str, quality_list: list[str], user_id: int, group_id: int, merged_folders: dict[str, str]) -> bool:
+def merge_folder(media_path: str, folder: str, merged_path: str, quality: str, quality_list: list[str], user_id: int, group_id: int, merged_folders: dict[str, str], updated_folders: dict[str, str]) -> bool:
     success = True
 
     # See if folder exists in merged_path, and create it if it doesn't
@@ -109,6 +114,7 @@ def merge_folder(media_path: str, folder: str, merged_path: str, quality: str, q
                 
     # Add folder to merged_folders
     merged_folders[folder] = quality
+    updated_folders[folder] = quality
 
     # If files exist in target_path, recursively remove them all
     if os.path.exists(target_path):
