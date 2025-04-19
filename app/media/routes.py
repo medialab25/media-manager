@@ -13,6 +13,36 @@ def get_jellyfin_config():
         }
     return config, None
 
+def get_merge_config():
+    config = current_app.config['MEDIA_MERGE']
+    return {
+        'matrix': config['source_matrix'],
+        'default_source': config['default_source_path'],
+        'user_id': int(config['user']),
+        'group_id': int(config['group'])
+    }
+
+def handle_merge():
+    try:
+        merge_config = get_merge_config()
+        
+        for media_type, type_config in merge_config['matrix'].items():
+            source_paths = type_config.get('source_paths', [merge_config['default_source']])
+            success = merge_libraries(
+                media_type=media_type,
+                source_paths=source_paths,
+                quality_list=type_config['quality_order'],
+                merged_path=type_config['merged_path'],
+                user_id=merge_config['user_id'],
+                group_id=merge_config['group_id']
+            )
+            if not success:
+                return False, f'Failed to merge {media_type} libraries'
+        
+        return True, 'Successfully merged all libraries'
+    except Exception as e:
+        return False, f'Error during merge: {str(e)}'
+
 @bp.route('/refresh', methods=['POST'])
 def refresh():
     try:
@@ -30,82 +60,33 @@ def refresh():
 
 @bp.route('/merge', methods=['POST'])
 def merge():
-    try:
-        config = current_app.config['MEDIA_MERGE']
-        matrix = config['source_matrix']
-        default_source = config['default_source_path']
-        user_id = int(config['user'])
-        group_id = int(config['group'])
-        
-        for media_type, type_config in matrix.items():
-            source_paths = type_config.get('source_paths', [default_source])
-            quality_list = type_config['quality_order']
-            merged_path = type_config['merged_path']
-            
-            success = merge_libraries(
-                media_type=media_type,
-                source_paths=source_paths,
-                quality_list=quality_list,
-                merged_path=merged_path,
-                user_id=user_id,
-                group_id=group_id
-            )
-            if not success:
-                return jsonify({
-                    'status': 'error',
-                    'message': f'Failed to merge {media_type} libraries'
-                }), 500
-        
-        return jsonify({
-            'status': 'ok',
-            'message': 'Successfully merged all libraries'
-        }), 200
-
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': f'Error during merge: {str(e)}'
-        }), 500
+    success, message = handle_merge()
+    status_code = 200 if success else 500
+    return jsonify({
+        'status': 'ok' if success else 'error',
+        'message': message
+    }), status_code
 
 @bp.route('/merge_and_refresh', methods=['POST'])
 def merge_and_refresh():
+    success, message = handle_merge()
+    if not success:
+        return jsonify({
+            'status': 'error',
+            'message': message
+        }), 500
+        
     try:
-        config = current_app.config['MEDIA_MERGE']
-        matrix = config['source_matrix']
-        default_source = config['default_source_path']
-        user_id = int(config['user'])
-        group_id = int(config['group'])
-        
-        for media_type, type_config in matrix.items():
-            source_paths = type_config.get('source_paths', [default_source])
-            quality_list = type_config['quality_order']
-            merged_path = type_config['merged_path']
-            
-            success = merge_libraries(
-                media_type=media_type,
-                source_paths=source_paths,
-                quality_list=quality_list,
-                merged_path=merged_path,
-                user_id=user_id,
-                group_id=group_id
-            )
-            if not success:
-                return jsonify({
-                    'status': 'error',
-                    'message': f'Failed to merge {media_type} libraries'
-                }), 500
-        
-        jellyfin_config, error = get_jellyfin_config()
+        config, error = get_jellyfin_config()
         if error:
             return jsonify(error), 500
             
-        result, status_code = refresh_libraries(jellyfin_config['URL'], jellyfin_config['TOKEN'])
+        result, status_code = refresh_libraries(config['URL'], config['TOKEN'])
         return jsonify(result), status_code
-
     except Exception as e:
         return jsonify({
             'status': 'error',
-            'message': f'Error during merge: {str(e)}'
+            'message': f'Error during refresh: {str(e)}'
         }), 500
 
 @bp.route('/status')
