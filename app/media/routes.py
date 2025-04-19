@@ -4,15 +4,21 @@ from app.media.merge_libraries import merge_libraries
 
 bp = Blueprint('media', __name__, url_prefix='/media')
 
+def get_jellyfin_config():
+    config = current_app.config['JELLYFIN']
+    if not config.get('URL') or not config.get('TOKEN'):
+        return None, {
+            'status': 'error',
+            'message': 'JellyFin configuration is missing URL or TOKEN'
+        }
+    return config, None
+
 @bp.route('/refresh', methods=['POST'])
 def refresh():
     try:
-        config = current_app.config['JELLYFIN']
-        if not config.get('URL') or not config.get('TOKEN'):
-            return jsonify({
-                'status': 'error',
-                'message': 'JellyFin configuration is missing URL or TOKEN'
-            }), 500
+        config, error = get_jellyfin_config()
+        if error:
+            return jsonify(error), 500
             
         result, status_code = refresh_libraries(config['URL'], config['TOKEN'])
         return jsonify(result), status_code
@@ -89,7 +95,11 @@ def merge_and_refresh():
                     'message': f'Failed to merge {media_type} libraries'
                 }), 500
         
-        result, status_code = refresh_libraries(config['URL'], config['TOKEN'])
+        jellyfin_config, error = get_jellyfin_config()
+        if error:
+            return jsonify(error), 500
+            
+        result, status_code = refresh_libraries(jellyfin_config['URL'], jellyfin_config['TOKEN'])
         return jsonify(result), status_code
 
     except Exception as e:
