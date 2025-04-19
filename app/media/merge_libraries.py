@@ -9,42 +9,26 @@ import os
 # Outputs:
 # - bool: True if merge was successful, False otherwise
 
-def merge_libraries(media_type: str, source_paths: list[str], quality_list: list[str], merged_path: str) -> bool:
+def merge_libraries(media_type: str, source_paths: list[str], quality_list: list[str], merged_path: str, user_id: int, group_id: int) -> bool:
     success = True
     for source_path in source_paths:
         for quality in quality_list:
             media_folder = f"{media_type}-{quality}"
             
             media_path = f"{source_path}/{media_folder}"
-            print(f"Media path: {media_path}")
-            print(f"Merging {media_type} from {media_path} to {merged_path}")
+            #print(f"Media path: {media_path}")
+            #print(f"Merging {media_type} from {media_path} to {merged_path}")
 
             # Get all folders in media_path if it exists
             if os.path.exists(media_path):
                 folders = os.listdir(media_path)
-                print(f"Folders: {folders}")
+                #print(f"Folders: {folders}")
 
                 # For each folder, call merge_folder
                 for folder in folders:
-                    merge_folder(folder, merged_path, quality_list)
+                    merge_folder(media_path, folder, merged_path, quality, quality_list, user_id, group_id)
 
-            # Create target media path
-#            target_path = f"{merged_path}/{media_folder}"
- #           print(f"Target path: {target_path}")    
-
-            # If target_path folder does not exist, create it
-#            if not os.path.exists(target_path):
-#                print(f"Target path {target_path} does not exist, creating it")
-#                os.makedirs(target_path)###
-
-                # Make correct user and group ownership
-#                os.chown(target_path, 1000, 1000)
-
-            # Call get folder_flags method
- #           folder_flags = get_folder_flags(target_path)
-  #          print(f"Folder flags: {folder_flags}")
-
-    return success  
+    return success
 
 # Get folder flag
 # A folder flag is a file starting with '.' with rest of name being the flag name
@@ -70,16 +54,61 @@ def get_folder_quality_flags(folder: str, quality_list: list[str]) -> str:
             return flag
     return None
 
-def merge_folder(folder: str, merged_path: str, quality_list: list[str]) -> bool:
+def merge_folder(media_path: str, folder: str, merged_path: str, quality: str, quality_list: list[str], user_id: int, group_id: int) -> bool:
     success = True
 
     # See if folder exists in merged_path, and create it if it doesn't
-    if not os.path.exists(f"{merged_path}/{folder}"):
-        print(f"Folder {folder} does not exist in {merged_path}, creating it")
-        os.makedirs(f"{merged_path}/{folder}")
+    source_path = f"{media_path}/{folder}"
+    target_path = f"{merged_path}/{folder}"
+    if not os.path.exists(target_path):
+        #print(f"Folder {folder} does not exist in {merged_path}, creating it")
+        try:
+            # Create directory with proper permissions
+            os.makedirs(target_path, mode=0o755)
+            # Set ownership
+            os.chown(target_path, user_id, group_id)
+        except PermissionError as e:
+            #print(f"Error creating directory {target_path}: {str(e)}")
+            return False
 
     # call get_folder_flags on the folder
-    folder_quality_flag = get_folder_quality_flags(f"{merged_path}/{folder}", quality_list)
-    print(f"Folder quality flag: {folder_quality_flag}")
-
+    folder_quality_flag = get_folder_quality_flags(target_path, quality_list)
+    #print(f"Folder quality flag: {folder_quality_flag}")
     
+    # Determine if folder_quality_flag is better than quality
+    if folder_quality_flag is not None and quality_list.index(folder_quality_flag) < quality_list.index(quality):
+        #print(f"Folder quality flag {folder_quality_flag} is better than {quality}, skipping")
+        return True
+
+    # Merge folder
+    # Create a flag file with current quality
+    flag_file = f"{target_path}/.{quality}"
+    with open(flag_file, 'w') as f:
+        f.write(f"{quality}")
+        #print(f"Created flag file {flag_file}")
+
+    # Get all files in folder
+    #print(f"Folder path: {source_path}")
+
+    # Recursively hard link all files in source_path to target_path keeping the same relative path
+    for root, dirs, files in os.walk(source_path):
+        for file in files:
+            rel_path = os.path.relpath(root, source_path)
+            src = os.path.join(root, file)
+            dst_dir = os.path.join(target_path, rel_path)
+            dst = os.path.join(dst_dir, file)
+
+            os.makedirs(dst_dir, mode=0o755, exist_ok=True)
+            os.chown(dst_dir, user_id, group_id)
+
+            try:
+                print(f"Linking {src} to {dst}")
+                os.link(src, dst)
+            except FileExistsError:
+                print(f"Skipping existing file: {dst}")
+                pass
+            except OSError as e:
+                print(f"Failed to link {src} to {dst}: {e}")
+                success = False
+
+    return success

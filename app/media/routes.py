@@ -10,12 +10,14 @@ def refresh():
     result, status_code = refresh_libraries(config['URL'], config['TOKEN'])
     return jsonify(result), status_code
 
-@bp.route('/merge')
+@bp.route('/merge', methods=['POST'])
 def merge():
     try:
         config = current_app.config['MEDIA_MERGE']
         matrix = config['source_matrix']
         default_source = config['default_source_path']
+        user_id = int(config['user'])
+        group_id = int(config['group'])
         
         for media_type, type_config in matrix.items():
             source_paths = type_config.get('source_paths', [default_source])
@@ -26,7 +28,9 @@ def merge():
                 media_type=media_type,
                 source_paths=source_paths,
                 quality_list=quality_list,
-                merged_path=merged_path
+                merged_path=merged_path,
+                user_id=user_id,
+                group_id=group_id
             )
             if not success:
                 return jsonify({
